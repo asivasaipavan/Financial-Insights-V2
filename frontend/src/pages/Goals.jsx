@@ -1,0 +1,18 @@
+import { useEffect, useState } from 'react';
+import { api, messageFromError } from '../api';
+import Panel from '../components/Panel';
+import { money, pct, shortDate } from '../utils/format';
+
+const empty={name:'',targetAmount:'',currentAmount:'',targetDate:''};
+export default function Goals(){
+ const [items,setItems]=useState([]),[form,setForm]=useState(empty),[editing,setEditing]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ async function load(){try{const {data}=await api.get('/goals');setItems(data.goals)}catch(err){setError(messageFromError(err))}}
+ useEffect(()=>{load()},[]);
+ function reset(){setForm(empty);setEditing(null)}
+ async function save(e){e.preventDefault();setBusy(true);setError('');try{const payload={...form,targetDate:form.targetDate||null,currentAmount:form.currentAmount||0};if(editing)await api.put(`/goals/${editing}`,payload);else await api.post('/goals',payload);reset();await load()}catch(err){setError(messageFromError(err))}finally{setBusy(false)}}
+ async function del(id){if(!confirm('Delete this goal?'))return;try{await api.delete(`/goals/${id}`);await load()}catch(err){setError(messageFromError(err))}}
+ return <div className="page-stack"><div className="page-heading"><div><div className="eyebrow">TARGETS</div><h1>Financial Goals</h1><p>Turn bigger plans into visible, measurable progress.</p></div></div>
+ <div className="content-grid two-third"><Panel title={editing?'Edit goal':'Create a goal'} subtitle="Examples: emergency fund, laptop, trip, tuition."><form className="form-grid"><label>Name<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Emergency fund"/></label><label>Target amount<input required type="number" min="1" step="1" value={form.targetAmount} onChange={e=>setForm({...form,targetAmount:e.target.value})} placeholder="150000"/></label><label>Current saved<input type="number" min="0" step="1" value={form.currentAmount} onChange={e=>setForm({...form,currentAmount:e.target.value})} placeholder="0"/></label><label>Target date<input type="date" value={form.targetDate} onChange={e=>setForm({...form,targetDate:e.target.value})}/></label><div className="form-actions span-2"><button type="button" className="btn primary" onClick={save} disabled={busy}>{busy?'Saving…':editing?'Save goal':'Create goal'}</button>{editing&&<button type="button" className="btn ghost" onClick={reset}>Cancel</button>}</div></form>{error&&<div className="alert error">{error}</div>}</Panel>
+ <Panel title="Your goals" subtitle="Progress is based on current saved amount vs target."><div className="goal-cards">{items.map(g=>{const p=Math.min(100,g.targetAmount?g.currentAmount/g.targetAmount*100:0);return <div className="goal-card" key={g.id}><div className="row-between"><div><strong>{g.name}</strong><div className="muted small">{g.targetDate?`Target ${shortDate(g.targetDate)}`:'No target date'}</div></div><div className="goal-percent">{pct(p)}</div></div><div className="progress-track big"><div className="progress-fill goal" style={{width:`${p}%`}}/></div><div className="row-between small"><span>{money(g.currentAmount)} saved</span><span>{money(Math.max(0,g.targetAmount-g.currentAmount))} remaining</span></div><div className="card-actions"><button className="icon-btn" onClick={()=>{setEditing(g.id);setForm({name:g.name,targetAmount:String(g.targetAmount),currentAmount:String(g.currentAmount),targetDate:g.targetDate||''})}}>Edit</button><button className="icon-btn danger" onClick={()=>del(g.id)}>Delete</button></div></div>})}{!items.length&&<div className="empty-state">No goals yet. Create one above.</div>}</div></Panel></div>
+ </div>
+}
