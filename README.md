@@ -1,5 +1,7 @@
 # Financial Insights V2
 
+🌐 **Live Demo:** https://financial-insights-v2.vercel.app/
+
 A full-stack personal finance platform built with React, Express, PostgreSQL, and JWT authentication. It is designed as a portfolio-ready V2 of the original Financial Insights project, with the original project left untouched.
 
 ## Final feature set
